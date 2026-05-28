@@ -1,7 +1,14 @@
-# Electric car cost estimator
+# Electric car tools
 
-Interactively compare costs of electric to combustion cars over mileage based on consumption, energy price and fixed costs.  
+Interactive plots based on tkinter & matplotlib.
+
+## cost estimator
+
+Compare yearly operating costs of electric and combustion cars over mileage based on consumption, energy price and fixed costs.  
 
 ![](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/preview.png)
 
-Based on tkinter & matplotlib.
+## travel time optimizer
+
+See this blog post:  
+https://gerritnowald.wordpress.com/2026/05/28/optimizing-electric-car-long-distance-travel-time/

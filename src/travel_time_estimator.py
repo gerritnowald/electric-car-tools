@@ -57,7 +57,7 @@ def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
                               consumption_at_50, consumption_at_120,
                               time_20_80, time_80_100,
                               min_soc=20.0, max_soc=100.0):
-    """Return time, distance and SOC arrays for a trip with charging pauses."""
+    """Return time, distance and State of Charge arrays for a trip with charging pauses."""
     if distance_km <= 0 or speed_kmh <= 0 or max_soc <= min_soc:
         return np.array([0.0]), np.array([0.0]), np.array([100.0])
 
@@ -176,7 +176,7 @@ def update_plot(val=None):
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-        fig.suptitle('Distance and state of charge over time')
+        fig.suptitle('Electric vehicle travel time and charge optimization', fontsize=14)
 
         if len(trip_time) > 0:
             total_hours = trip_time[-1]
@@ -241,12 +241,12 @@ def create_labeled_entry(parent, label_text, unit_text, default_value, callback)
     entry.bind('<KeyRelease>', callback)
     return entry
 
-entry_distance = create_labeled_entry(left_frame, "Target distance", "km", target_distance, update_plot)
+entry_distance = create_labeled_entry(left_frame, "Total trip distance", "km", target_distance, update_plot)
 entry_battery = create_labeled_entry(left_frame, "Battery capacity", "kWh", battery_kwh, update_plot)
 entry_cons_50 = create_labeled_entry(left_frame, "Consumption at 50 km/h", "kWh/100km", consumption_at_50, update_plot)
 entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_at_120, update_plot)
-entry_time_20_80 = create_labeled_entry(left_frame, "Time 20→80%", "min", time_20_80, update_plot)
-entry_time_80_100 = create_labeled_entry(left_frame, "Time 80→100%", "min", time_80_100, update_plot)
+entry_time_20_80 = create_labeled_entry(left_frame, "Charging Time 20→80%", "min", time_20_80, update_plot)
+entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%", "min", time_80_100, update_plot)
 
 # right column - sliders and summary
 right_frame = tk.Frame(controls_frame)
@@ -261,19 +261,19 @@ output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 summary_frame = tk.Frame(output_frame)
 summary_frame.pack(pady=(5, 0), expand=True)
 
-tk.Label(slider_frame, text="Travel speed", font=("Arial", 11, "bold")).pack(pady=(5, 0))
+tk.Label(slider_frame, text="Travel speed / km/h", font=("Arial", 11, "bold")).pack(pady=(5, 0))
 slider_speed = tk.Scale(slider_frame, from_=30, to=150, orient=tk.HORIZONTAL, 
                         command=update_plot, length=180)
 slider_speed.set(travel_speed)
 slider_speed.pack()
 
-tk.Label(slider_frame, text="Min SOC", font=("Arial", 11, "bold")).pack(pady=(10, 0))
+tk.Label(slider_frame, text="Min State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
 slider_min_soc = tk.Scale(slider_frame, from_=0, to=50, orient=tk.HORIZONTAL, 
                           command=update_plot, length=180)
 slider_min_soc.set(min_soc)
 slider_min_soc.pack()
 
-tk.Label(slider_frame, text="Max SOC", font=("Arial", 11, "bold")).pack(pady=(10, 0))
+tk.Label(slider_frame, text="Max State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
 slider_max_soc = tk.Scale(slider_frame, from_=50, to=100, orient=tk.HORIZONTAL, 
                           command=update_plot, length=180)
 slider_max_soc.set(max_soc)
@@ -293,7 +293,7 @@ def create_summary_row(parent, title):
 label_time_traveled = create_summary_row(summary_frame, "Time traveled")
 label_usable_range = create_summary_row(summary_frame, "Usable range")
 label_charging_stops = create_summary_row(summary_frame, "Charging stops")
-label_end_soc = create_summary_row(summary_frame, "End SOC")
+label_end_soc = create_summary_row(summary_frame, "End State of Charge")
 
 # initial plot
 update_plot()
