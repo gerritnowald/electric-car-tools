@@ -2,13 +2,17 @@
 
 Interactive plots based on tkinter & matplotlib.
 
+## travel time optimizer
+
+Optimize travel time for long distance highway driving with constant speed and DC charging.
+
+See this blog post:  
+https://gerritnowald.wordpress.com/2026/05/28/optimizing-electric-car-long-distance-travel-time/
+
+[](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/img/travel_time_estimator.png)
+
 ## cost estimator
 
 Compare yearly operating costs of electric and combustion cars over mileage based on consumption, energy price and fixed costs.  
 
-![](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/preview.png)
-
-## travel time optimizer
-
-See this blog post:  
-https://gerritnowald.wordpress.com/2026/05/28/optimizing-electric-car-long-distance-travel-time/
+![](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/img/car_cost_estimator.png)
