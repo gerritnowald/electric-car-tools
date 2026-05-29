@@ -171,27 +171,38 @@ def update_plot(val=None):
 
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower right')
         fig.suptitle('Electric vehicle travel time and charge optimization', fontsize=14)
 
         if len(trip_time) > 0:
             total_hours = trip_time[-1]
-            diff = trip_distance[1:] - trip_distance[:-1]
-            stops = int(np.sum((diff[:-1] == 0.0) & (diff[1:] > 0.0)))
-            usable_range_km = battery * (max_s - min_s) / consumption_model(speed)
-            end_soc_value = trip_soc[-1] if len(trip_soc) > 0 else 100.0
             hours = int(total_hours)
             minutes = int(round((total_hours - hours) * 60))
             if minutes == 60:
                 hours += 1
                 minutes = 0
 
+            consumption = consumption_model(speed)
+
+            energy_needed = consumption * target_dist / 100.0
+
+            usable_range_km = battery * (max_s - min_s) / consumption
+
+            diff = trip_distance[1:] - trip_distance[:-1]
+            stops = int(np.sum((diff[:-1] == 0.0) & (diff[1:] > 0.0)))
+
+            end_soc_value = trip_soc[-1] if len(trip_soc) > 0 else 100.0
+
             label_time_traveled.config(text=f"{hours:d}:{minutes:02d} h")
+            label_energy_needed.config(text=f"{round(energy_needed)} kWh")
+            label_avg_consumption.config(text=f"{consumption:.1f} kWh/100km")
             label_usable_range.config(text=f"{usable_range_km:.0f} km")
             label_charging_stops.config(text=f"{stops}")
             label_end_soc.config(text=f"{end_soc_value:.1f} %")
         else:
             label_time_traveled.config(text="n/a")
+            label_energy_needed.config(text="n/a")
+            label_avg_consumption.config(text="n/a")
             label_usable_range.config(text="n/a")
             label_charging_stops.config(text="n/a")
             label_end_soc.config(text="n/a")
@@ -257,7 +268,7 @@ summary_frame = tk.Frame(output_frame)
 summary_frame.pack(pady=(5, 0), expand=True)
 
 tk.Label(slider_frame, text="Travel speed / km/h", font=("Arial", 11, "bold")).pack(pady=(5, 0))
-slider_speed = tk.Scale(slider_frame, from_=30, to=150, orient=tk.HORIZONTAL, 
+slider_speed = tk.Scale(slider_frame, from_=80, to=150, orient=tk.HORIZONTAL, 
                         command=update_plot, length=180)
 slider_speed.set(travel_speed)
 slider_speed.pack()
@@ -286,6 +297,8 @@ def create_summary_row(parent, title):
     return value
 
 label_time_traveled = create_summary_row(summary_frame, "Time traveled")
+label_energy_needed = create_summary_row(summary_frame, "Energy needed")
+label_avg_consumption = create_summary_row(summary_frame, "Avg. consumption")
 label_usable_range = create_summary_row(summary_frame, "Usable range")
 label_charging_stops = create_summary_row(summary_frame, "Charging stops")
 label_end_soc = create_summary_row(summary_frame, "End State of Charge")
