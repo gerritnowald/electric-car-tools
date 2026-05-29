@@ -1,20 +1,21 @@
 import tkinter as tk
-from tkinter import ttk
+
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import numpy as np
+from numpy.polynomial import Polynomial
 
 # ----------------------------------------------------------------------
-# input parameters
+# start input parameters
 
 target_distance = 700.0  # km
 travel_speed = 110.0  # km/h
 min_soc = 20.0
 max_soc = 100.0
 
-consumption_at_50 = 15.0  # kWh/100km
-consumption_at_120 = 22.0  # kWh/100km
+consumption_100 = 13.0  # kWh/100km
+consumption_120 = 18    # kWh/100km
 
 battery_kwh = 80.0
 time_20_80 = 20.0  # minutes
@@ -22,13 +23,6 @@ time_80_100 = 30.0  # minutes
 
 # ----------------------------------------------------------------------
 # functions
-
-def consumption_quadratic(speed_kmh, consumption_at_50, consumption_at_120):
-    """Return power consumption in kWh/100km as a quadratic function of speed."""
-    a = (consumption_at_120 - consumption_at_50) / (120**2 - 50**2)
-    c0 = consumption_at_50 - a * 50**2
-    return a * np.array(speed_kmh) ** 2 + c0
-
 
 def soc_charge_curve(time_min, time_20_80, time_80_100):
     """Return state of charge (%) for a single cubic charging curve."""
@@ -54,14 +48,14 @@ def soc_charge_curve(time_min, time_20_80, time_80_100):
 
 
 def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
-                              consumption_at_50, consumption_at_120,
+                              consumption_model,
                               time_20_80, time_80_100,
                               min_soc=20.0, max_soc=100.0):
     """Return time, distance and State of Charge arrays for a trip with charging pauses."""
     if distance_km <= 0 or speed_kmh <= 0 or max_soc <= min_soc:
         return np.array([0.0]), np.array([0.0]), np.array([100.0])
 
-    consumption = consumption_quadratic(speed_kmh, consumption_at_50, consumption_at_120)
+    consumption = consumption_model(speed_kmh)
     first_leg_energy = battery_kwh * (100.0 - min_soc) / 100.0
     first_leg_range = first_leg_energy / (consumption / 100.0)
     subsequent_leg_energy = battery_kwh * (max_soc - min_soc) / 100.0
@@ -138,19 +132,21 @@ def update_plot(val=None):
         target_dist = float(entry_distance.get())
         speed = slider_speed.get()
         battery = float(entry_battery.get())
-        cons_50 = float(entry_cons_50.get())
+        cons_100 = float(entry_cons_100.get())
         cons_120 = float(entry_cons_120.get())
         t_20_80 = float(entry_time_20_80.get())
         t_80_100 = float(entry_time_80_100.get())
         min_s = slider_min_soc.get()
         max_s = slider_max_soc.get()
 
+        consumption_model = Polynomial.fit([0, 100, 120], [0, cons_100, cons_120], deg=2)
+
         if max_s <= min_s:
             max_s = min_s + 1
 
         trip_time, trip_distance, trip_soc = travel_distance_over_time(
             target_dist, speed, battery,
-            cons_50, cons_120,
+            consumption_model,
             t_20_80, t_80_100,
             min_soc=min_s, max_soc=max_s,
         )
@@ -182,8 +178,7 @@ def update_plot(val=None):
             total_hours = trip_time[-1]
             diff = trip_distance[1:] - trip_distance[:-1]
             stops = int(np.sum((diff[:-1] == 0.0) & (diff[1:] > 0.0)))
-            consumption = consumption_quadratic(speed, cons_50, cons_120)
-            usable_range_km = battery * (max_s - min_s) / 100.0 / (consumption / 100.0)
+            usable_range_km = battery * (max_s - min_s) / consumption_model(speed)
             end_soc_value = trip_soc[-1] if len(trip_soc) > 0 else 100.0
             hours = int(total_hours)
             minutes = int(round((total_hours - hours) * 60))
@@ -243,8 +238,8 @@ def create_labeled_entry(parent, label_text, unit_text, default_value, callback)
 
 entry_distance = create_labeled_entry(left_frame, "Total trip distance", "km", target_distance, update_plot)
 entry_battery = create_labeled_entry(left_frame, "Battery capacity", "kWh", battery_kwh, update_plot)
-entry_cons_50 = create_labeled_entry(left_frame, "Consumption at 50 km/h", "kWh/100km", consumption_at_50, update_plot)
-entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_at_120, update_plot)
+entry_cons_100 = create_labeled_entry(left_frame, "Consumption at 100 km/h", "kWh/100km", consumption_100, update_plot)
+entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
 entry_time_20_80 = create_labeled_entry(left_frame, "Charging Time 20→80%", "min", time_20_80, update_plot)
 entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%", "min", time_80_100, update_plot)
 
