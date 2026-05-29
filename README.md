@@ -9,7 +9,7 @@ Optimize travel time for long distance highway driving with constant speed and D
 See this blog post:  
 https://gerritnowald.wordpress.com/2026/05/28/optimizing-electric-car-long-distance-travel-time/
 
-[](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/img/travel_time_estimator.png)
+![](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/img/travel_time_estimator.png)
 
 ## cost estimator
 
