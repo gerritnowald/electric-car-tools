@@ -24,39 +24,32 @@ time_80_100 = 30.0  # minutes
 # ----------------------------------------------------------------------
 # functions
 
-def soc_charge_curve(time_min, time_20_80, time_80_100):
-    """Return state of charge (%) for a single cubic charging curve.
-    The curve is constrained to pass through:
+class charge_curve:
+    """Return state of charge (%) over time.
+    The cubic curve is constrained to pass through:
       - 20% at t = 0
       - 80% at t = time_20_80
       - 100% at t = time_20_80 + time_80_100
     and to flatten at 100% with zero slope at the end."""
-    time_min = np.asarray(time_min, dtype=float)
-    t1 = float(time_20_80)
-    t2 = float(time_80_100)
-    t_end = t1 + t2
+    def __init__(self, t_20_80, t_80_100):
+        t_end = t_20_80 + t_80_100
+        # cubic coefficients a*t^3 + b*t^2 + c*t + d
+        A = np.array([
+            [0.0**3, 0.0**2, 0.0, 1.0],
+            [t_20_80**3, t_20_80**2, t_20_80, 1.0],
+            [t_end**3, t_end**2, t_end, 1.0],
+            [3.0 * t_end**2, 2.0 * t_end, 1.0, 0.0],
+        ])
+        y = np.array([20.0, 80.0, 100.0, 0.0])
+        self.coeffs = np.linalg.solve(A, y)
 
-    if t_end <= 0:
-        return np.full_like(time_min, 20.0)
-    
-    # cubic coefficients a*t^3 + b*t^2 + c*t + d
-    A = np.array([
-        [0.0**3, 0.0**2, 0.0, 1.0],
-        [t1**3, t1**2, t1, 1.0],
-        [t_end**3, t_end**2, t_end, 1.0],
-        [3.0 * t_end**2, 2.0 * t_end, 1.0, 0.0],
-    ])
-    y = np.array([20.0, 80.0, 100.0, 0.0])
-    a, b, c, d = np.linalg.solve(A, y)
-
-    soc = np.polyval([a, b, c, d], time_min)
-    return np.clip(soc, 0.0, 100.0)
+    def __call__(self, time):
+        return np.polyval(self.coeffs, time)
 
 
-def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
-                              consumption_model,
-                              time_20_80, time_80_100,
-                              min_soc=20.0, max_soc=100.0):
+def travel_distance_over_time(distance_km, battery_kwh,
+                              consumption_model, charge_model,
+                              speed_kmh, min_soc=20.0, max_soc=100.0):
     """Return time, distance and State of Charge arrays for a trip with charging pauses."""
     if distance_km <= 0 or speed_kmh <= 0 or max_soc <= min_soc:
         return np.array([0.0]), np.array([0.0]), np.array([100.0])
@@ -72,7 +65,7 @@ def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
         if end_soc <= start_soc:
             return 0.0, 0.0
         grid = np.linspace(0.0, full_time, 2001)
-        curve = soc_charge_curve(grid, time_20_80, time_80_100)
+        curve = charge_model(grid)
         start_t = 0.0 if start_soc <= 20.0 else float(np.interp(start_soc, curve, grid))
         end_t = full_time if end_soc >= 100.0 else float(np.interp(end_soc, curve, grid))
         return max(0.0, end_t - start_t), start_t
@@ -119,7 +112,7 @@ def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
             break
 
         charge_grid = np.linspace(charge_start_time, charge_start_time + charge_target_time, 21)
-        base_soc = soc_charge_curve(charge_grid, time_20_80, time_80_100)
+        base_soc = charge_model(charge_grid)
 
         for t_abs, soc in zip(charge_grid[1:], base_soc[1:]):
             times.append(current_time + (t_abs - charge_start_time) / 60.0)
@@ -146,15 +139,16 @@ def update_plot(val=None):
         max_s = slider_max_soc.get()
 
         consumption_model = Polynomial.fit([0, 100, 120], [0, cons_100, cons_120], deg=2)
+        
+        charge_model = charge_curve(t_20_80, t_80_100)
 
         if max_s <= min_s:
             max_s = min_s + 1
 
         trip_time, trip_distance, trip_soc = travel_distance_over_time(
-            target_dist, speed, battery,
-            consumption_model,
-            t_20_80, t_80_100,
-            min_soc=min_s, max_soc=max_s,
+            target_dist, battery,
+            consumption_model, charge_model,
+            speed, min_soc=min_s, max_soc=max_s,
         )
 
         ax1.clear()
