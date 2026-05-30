@@ -25,7 +25,12 @@ time_80_100 = 30.0  # minutes
 # functions
 
 def soc_charge_curve(time_min, time_20_80, time_80_100):
-    """Return state of charge (%) for a single cubic charging curve."""
+    """Return state of charge (%) for a single cubic charging curve.
+    The curve is constrained to pass through:
+      - 20% at t = 0
+      - 80% at t = time_20_80
+      - 100% at t = time_20_80 + time_80_100
+    and to flatten at 100% with zero slope at the end."""
     time_min = np.asarray(time_min, dtype=float)
     t1 = float(time_20_80)
     t2 = float(time_80_100)
@@ -33,7 +38,8 @@ def soc_charge_curve(time_min, time_20_80, time_80_100):
 
     if t_end <= 0:
         return np.full_like(time_min, 20.0)
-
+    
+    # cubic coefficients a*t^3 + b*t^2 + c*t + d
     A = np.array([
         [0.0**3, 0.0**2, 0.0, 1.0],
         [t1**3, t1**2, t1, 1.0],
@@ -44,7 +50,7 @@ def soc_charge_curve(time_min, time_20_80, time_80_100):
     a, b, c, d = np.linalg.solve(A, y)
 
     soc = np.polyval([a, b, c, d], time_min)
-    return np.clip(soc, 20.0, 100.0)
+    return np.clip(soc, 0.0, 100.0)
 
 
 def travel_distance_over_time(distance_km, speed_kmh, battery_kwh,
@@ -215,95 +221,106 @@ def update_plot(val=None):
 # ----------------------------------------------------------------------
 # create GUI elements
 
-root = tk.Tk()
-root.title("Travel time and charge optimization")
+def main():
 
-# figure and plot
-fig = Figure(figsize=(8, 4), dpi=100)
-ax1 = fig.add_subplot(111)
-ax2 = ax1.twinx()
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+    global entry_distance, entry_battery, entry_cons_100, entry_cons_120, entry_time_20_80, entry_time_80_100
+    global slider_speed, slider_min_soc, slider_max_soc
+    global label_time_traveled, label_energy_needed, label_avg_consumption, label_usable_range, label_charging_stops, label_end_soc
+    global ax1, ax2, fig, canvas
 
-# controls frame
-controls_frame = tk.Frame(root)
-controls_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True)
+    root = tk.Tk()
+    root.title("Travel time and charge optimization")
 
-# left column - text inputs
-left_frame = tk.Frame(controls_frame)
-left_frame.pack(side=tk.LEFT, padx=5)
+    # figure and plot
+    fig = Figure(figsize=(8, 4), dpi=100)
+    ax1 = fig.add_subplot(111)
+    ax2 = ax1.twinx()
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-tk.Label(left_frame, text="Parameters", font=("Arial", 12, "bold")).pack()
+    # controls frame
+    controls_frame = tk.Frame(root)
+    controls_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-# helper function to create labeled entry with unit on right
-def create_labeled_entry(parent, label_text, unit_text, default_value, callback):
-    frame = tk.Frame(parent)
-    frame.pack(pady=2)
-    tk.Label(frame, text=label_text, width=30, anchor='w').pack(side=tk.LEFT)
-    entry = tk.Entry(frame, width=12)
-    entry.insert(0, str(default_value))
-    entry.pack(side=tk.LEFT, padx=2)
-    tk.Label(frame, text=unit_text, width=15, anchor='w').pack(side=tk.LEFT)
-    entry.bind('<KeyRelease>', callback)
-    return entry
+    # left column - text inputs
+    left_frame = tk.Frame(controls_frame)
+    left_frame.pack(side=tk.LEFT, padx=5)
 
-entry_distance = create_labeled_entry(left_frame, "Total trip distance", "km", target_distance, update_plot)
-entry_battery = create_labeled_entry(left_frame, "Battery capacity", "kWh", battery_kwh, update_plot)
-entry_cons_100 = create_labeled_entry(left_frame, "Consumption at 100 km/h", "kWh/100km", consumption_100, update_plot)
-entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
-entry_time_20_80 = create_labeled_entry(left_frame, "Charging Time 20→80%", "min", time_20_80, update_plot)
-entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%", "min", time_80_100, update_plot)
+    tk.Label(left_frame, text="Parameters", font=("Arial", 12, "bold")).pack()
 
-# right column - sliders and summary
-right_frame = tk.Frame(controls_frame)
-right_frame.pack(side=tk.RIGHT, padx=5, fill=tk.BOTH, expand=True)
+    # helper function to create labeled entry with unit on right
+    def create_labeled_entry(parent, label_text, unit_text, default_value, callback):
+        frame = tk.Frame(parent)
+        frame.pack(pady=2)
+        tk.Label(frame, text=label_text, width=30, anchor='w').pack(side=tk.LEFT)
+        entry = tk.Entry(frame, width=12)
+        entry.insert(0, str(default_value))
+        entry.pack(side=tk.LEFT, padx=2)
+        tk.Label(frame, text=unit_text, width=15, anchor='w').pack(side=tk.LEFT)
+        entry.bind('<KeyRelease>', callback)
+        return entry
 
-slider_frame = tk.Frame(right_frame)
-slider_frame.pack(side=tk.LEFT, padx=(0, 10), fill=tk.Y)
+    entry_distance = create_labeled_entry(left_frame, "Total trip distance", "km", target_distance, update_plot)
+    entry_battery = create_labeled_entry(left_frame, "Battery capacity", "kWh", battery_kwh, update_plot)
+    entry_cons_100 = create_labeled_entry(left_frame, "Consumption at 100 km/h", "kWh/100km", consumption_100, update_plot)
+    entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
+    entry_time_20_80 = create_labeled_entry(left_frame, "Charging Time 20→80%", "min", time_20_80, update_plot)
+    entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%", "min", time_80_100, update_plot)
 
-output_frame = tk.Frame(right_frame)
-output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    # right column - sliders and summary
+    right_frame = tk.Frame(controls_frame)
+    right_frame.pack(side=tk.RIGHT, padx=5, fill=tk.BOTH, expand=True)
 
-summary_frame = tk.Frame(output_frame)
-summary_frame.pack(pady=(5, 0), expand=True)
+    slider_frame = tk.Frame(right_frame)
+    slider_frame.pack(side=tk.LEFT, padx=(0, 10), fill=tk.Y)
 
-tk.Label(slider_frame, text="Travel speed / km/h", font=("Arial", 11, "bold")).pack(pady=(5, 0))
-slider_speed = tk.Scale(slider_frame, from_=80, to=150, orient=tk.HORIZONTAL, 
-                        command=update_plot, length=180)
-slider_speed.set(travel_speed)
-slider_speed.pack()
+    output_frame = tk.Frame(right_frame)
+    output_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-tk.Label(slider_frame, text="Min State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
-slider_min_soc = tk.Scale(slider_frame, from_=0, to=50, orient=tk.HORIZONTAL, 
-                          command=update_plot, length=180)
-slider_min_soc.set(min_soc)
-slider_min_soc.pack()
+    summary_frame = tk.Frame(output_frame)
+    summary_frame.pack(pady=(5, 0), expand=True)
 
-tk.Label(slider_frame, text="Max State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
-slider_max_soc = tk.Scale(slider_frame, from_=50, to=100, orient=tk.HORIZONTAL, 
-                          command=update_plot, length=180)
-slider_max_soc.set(max_soc)
-slider_max_soc.pack()
+    tk.Label(slider_frame, text="Travel speed / km/h", font=("Arial", 11, "bold")).pack(pady=(5, 0))
+    slider_speed = tk.Scale(slider_frame, from_=80, to=150, orient=tk.HORIZONTAL, 
+                            command=update_plot, length=180)
+    slider_speed.set(travel_speed)
+    slider_speed.pack()
 
-summary_frame = tk.Frame(output_frame)
-summary_frame.pack(pady=(5, 0), fill=tk.BOTH, expand=True)
+    tk.Label(slider_frame, text="Min State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
+    slider_min_soc = tk.Scale(slider_frame, from_=0, to=50, orient=tk.HORIZONTAL, 
+                            command=update_plot, length=180)
+    slider_min_soc.set(min_soc)
+    slider_min_soc.pack()
 
-def create_summary_row(parent, title):
-    row = tk.Frame(parent)
-    row.pack(fill=tk.X, pady=2)
-    tk.Label(row, text=title, width=18, anchor='w').pack(side=tk.LEFT)
-    value = tk.Label(row, text="", width=12, anchor='e')
-    value.pack(side=tk.RIGHT)
-    return value
+    tk.Label(slider_frame, text="Max State of Charge / %", font=("Arial", 11, "bold")).pack(pady=(10, 0))
+    slider_max_soc = tk.Scale(slider_frame, from_=50, to=100, orient=tk.HORIZONTAL, 
+                            command=update_plot, length=180)
+    slider_max_soc.set(max_soc)
+    slider_max_soc.pack()
 
-label_time_traveled = create_summary_row(summary_frame, "Time traveled")
-label_energy_needed = create_summary_row(summary_frame, "Energy needed")
-label_avg_consumption = create_summary_row(summary_frame, "Avg. consumption")
-label_usable_range = create_summary_row(summary_frame, "Usable range")
-label_charging_stops = create_summary_row(summary_frame, "Charging stops")
-label_end_soc = create_summary_row(summary_frame, "End State of Charge")
+    summary_frame = tk.Frame(output_frame)
+    summary_frame.pack(pady=(5, 0), fill=tk.BOTH, expand=True)
 
-# initial plot
-update_plot()
+    def create_summary_row(parent, title):
+        row = tk.Frame(parent)
+        row.pack(fill=tk.X, pady=2)
+        tk.Label(row, text=title, width=18, anchor='w').pack(side=tk.LEFT)
+        value = tk.Label(row, text="", width=12, anchor='e')
+        value.pack(side=tk.RIGHT)
+        return value
 
-root.mainloop()
+    label_time_traveled = create_summary_row(summary_frame, "Time traveled")
+    label_energy_needed = create_summary_row(summary_frame, "Energy needed")
+    label_avg_consumption = create_summary_row(summary_frame, "Avg. consumption")
+    label_usable_range = create_summary_row(summary_frame, "Usable range")
+    label_charging_stops = create_summary_row(summary_frame, "Charging stops")
+    label_end_soc = create_summary_row(summary_frame, "End State of Charge")
+
+    # initial plot
+    update_plot()
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
