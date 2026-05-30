@@ -127,90 +127,85 @@ def travel_distance_over_time(distance_km, battery_kwh,
 
 def update_plot(val=None):
     """Update the plot with current parameter values."""
-    try:
-        target_dist = float(entry_distance.get())
-        speed = slider_speed.get()
-        battery = float(entry_battery.get())
-        cons_100 = float(entry_cons_100.get())
-        cons_120 = float(entry_cons_120.get())
-        t_20_80 = float(entry_time_20_80.get())
-        t_80_100 = float(entry_time_80_100.get())
-        min_s = slider_min_soc.get()
-        max_s = slider_max_soc.get()
 
-        consumption_model = Polynomial.fit([0, 100, 120], [0, cons_100, cons_120], deg=2)
+    # read parameters from GUI
+    target_dist = float(entry_distance.get())
+    battery  = float(entry_battery.get())
+
+    cons_100 = float(entry_cons_100.get())
+    cons_120 = float(entry_cons_120.get())
+    t_20_80  = float(entry_time_20_80.get())
+    t_80_100 = float(entry_time_80_100.get())
+
+    speed = slider_speed.get()
+    min_s = slider_min_soc.get()
+    max_s = slider_max_soc.get()
+
+    consumption_model = Polynomial.fit([0, 100, 120], [0, cons_100, cons_120], deg=2)
         
-        charge_model = charge_curve(t_20_80, t_80_100)
+    charge_model = charge_curve(t_20_80, t_80_100)
 
-        if max_s <= min_s:
-            max_s = min_s + 1
+    if max_s <= min_s:
+        max_s = min_s + 1
 
-        trip_time, trip_distance, trip_soc = travel_distance_over_time(
-            target_dist, battery,
-            consumption_model, charge_model,
-            speed, min_soc=min_s, max_soc=max_s,
-        )
+    trip_time, trip_distance, trip_soc = travel_distance_over_time(
+        target_dist, battery,
+        consumption_model, charge_model,
+        speed, min_soc=min_s, max_soc=max_s,
+    )
 
-        ax1.clear()
-        ax2.clear()
+    # update plot
+    ax1.clear()
+    ax2.clear()
 
-        ax1.plot(trip_time, trip_distance, color='tab:blue', linewidth=2, label='distance traveled')
-        ax1.set_xlabel('time / h')
-        ax1.set_ylabel('distance / km', color='tab:blue')
-        ax1.tick_params(axis='y', colors='tab:blue')
-        ax1.spines['left'].set_color('tab:blue')
-        ax1.grid(True)
+    ax1.plot(trip_time, trip_distance, color='tab:blue', linewidth=2, label='distance traveled')
+    ax1.set_xlabel('time / h')
+    ax1.set_ylabel('distance / km', color='tab:blue')
+    ax1.tick_params(axis='y', colors='tab:blue')
+    ax1.spines['left'].set_color('tab:blue')
+    ax1.grid(True)
 
-        ax2.plot(trip_time, trip_soc, color='tab:orange', linestyle='--', linewidth=2, label='state of charge')
-        ax2.set_ylabel('state of charge / %', color='tab:orange')
-        ax2.yaxis.set_label_position('right')
-        ax2.yaxis.set_label_coords(1.05, 0.5)
-        ax2.tick_params(axis='y', colors='tab:orange')
-        ax2.spines['right'].set_color('tab:orange')
-        ax2.set_ylim(0, 100)
+    ax2.plot(trip_time, trip_soc, color='tab:orange', linestyle='--', linewidth=2, label='state of charge')
+    ax2.set_ylabel('state of charge / %', color='tab:orange')
+    ax2.yaxis.set_label_position('right')
+    ax2.yaxis.set_label_coords(1.05, 0.5)
+    ax2.tick_params(axis='y', colors='tab:orange')
+    ax2.spines['right'].set_color('tab:orange')
+    ax2.set_ylim(0, 100)
 
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower right')
-        fig.suptitle('Electric vehicle travel time and charge optimization', fontsize=14)
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='lower right')
+    fig.suptitle('Electric vehicle travel time and charge optimization', fontsize=14)
 
-        if len(trip_time) > 0:
-            total_hours = trip_time[-1]
-            hours = int(total_hours)
-            minutes = int(round((total_hours - hours) * 60))
-            if minutes == 60:
-                hours += 1
-                minutes = 0
+    # compute summary values
+    total_hours = trip_time[-1]
+    hours = int(total_hours)
+    minutes = int(round((total_hours - hours) * 60))
+    if minutes == 60:
+        hours += 1
+        minutes = 0
 
-            consumption = consumption_model(speed)
+    consumption = consumption_model(speed)
 
-            energy_needed = consumption * target_dist / 100.0
+    energy_needed = consumption * target_dist / 100.0
 
-            usable_range_km = battery * (max_s - min_s) / consumption
+    usable_range_km = battery * (max_s - min_s) / consumption
 
-            diff = trip_distance[1:] - trip_distance[:-1]
-            stops = int(np.sum((diff[:-1] == 0.0) & (diff[1:] > 0.0)))
+    diff = trip_distance[1:] - trip_distance[:-1]
+    stops = int(np.sum((diff[:-1] == 0.0) & (diff[1:] > 0.0)))
 
-            end_soc_value = trip_soc[-1] if len(trip_soc) > 0 else 100.0
+    end_soc_value = trip_soc[-1] if len(trip_soc) > 0 else 100.0
 
-            label_time_traveled.config(text=f"{hours:d}:{minutes:02d} h")
-            label_energy_needed.config(text=f"{round(energy_needed)} kWh")
-            label_avg_consumption.config(text=f"{consumption:.1f} kWh/100km")
-            label_usable_range.config(text=f"{usable_range_km:.0f} km")
-            label_charging_stops.config(text=f"{stops}")
-            label_end_soc.config(text=f"{end_soc_value:.1f} %")
-        else:
-            label_time_traveled.config(text="n/a")
-            label_energy_needed.config(text="n/a")
-            label_avg_consumption.config(text="n/a")
-            label_usable_range.config(text="n/a")
-            label_charging_stops.config(text="n/a")
-            label_end_soc.config(text="n/a")
+    label_time_traveled.config(text=f"{hours:d}:{minutes:02d} h")
+    label_energy_needed.config(text=f"{round(energy_needed)} kWh")
+    label_avg_consumption.config(text=f"{consumption:.1f} kWh/100km")
+    label_usable_range.config(text=f"{usable_range_km:.0f} km")
+    label_charging_stops.config(text=f"{stops}")
+    label_end_soc.config(text=f"{end_soc_value:.1f} %")
 
-        canvas.draw()
+    canvas.draw()
 
-    except ValueError:
-        pass
 
 # ----------------------------------------------------------------------
 # create GUI elements
@@ -254,12 +249,13 @@ def main():
         entry.bind('<KeyRelease>', callback)
         return entry
 
-    entry_distance = create_labeled_entry(left_frame, "Total trip distance", "km", target_distance, update_plot)
-    entry_battery = create_labeled_entry(left_frame, "Battery capacity", "kWh", battery_kwh, update_plot)
-    entry_cons_100 = create_labeled_entry(left_frame, "Consumption at 100 km/h", "kWh/100km", consumption_100, update_plot)
-    entry_cons_120 = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
-    entry_time_20_80 = create_labeled_entry(left_frame, "Charging Time 20→80%", "min", time_20_80, update_plot)
-    entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%", "min", time_80_100, update_plot)
+    # create text entries for parameters
+    entry_distance    = create_labeled_entry(left_frame, "Total trip distance"    , "km"       , target_distance, update_plot)
+    entry_battery     = create_labeled_entry(left_frame, "Battery capacity"       , "kWh"      , battery_kwh    , update_plot)
+    entry_cons_100    = create_labeled_entry(left_frame, "Consumption at 100 km/h", "kWh/100km", consumption_100, update_plot)
+    entry_cons_120    = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
+    entry_time_20_80  = create_labeled_entry(left_frame, "Charging Time 20→80%"   , "min"      , time_20_80     , update_plot)
+    entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%"  , "min"      , time_80_100    , update_plot)
 
     # right column - sliders and summary
     right_frame = tk.Frame(controls_frame)
@@ -295,6 +291,7 @@ def main():
     summary_frame = tk.Frame(output_frame)
     summary_frame.pack(pady=(5, 0), fill=tk.BOTH, expand=True)
 
+    # helper function to create summary rows
     def create_summary_row(parent, title):
         row = tk.Frame(parent)
         row.pack(fill=tk.X, pady=2)
@@ -303,12 +300,13 @@ def main():
         value.pack(side=tk.RIGHT)
         return value
 
-    label_time_traveled = create_summary_row(summary_frame, "Time traveled")
-    label_energy_needed = create_summary_row(summary_frame, "Energy needed")
-    label_avg_consumption = create_summary_row(summary_frame, "Avg. consumption")
-    label_usable_range = create_summary_row(summary_frame, "Usable range")
-    label_charging_stops = create_summary_row(summary_frame, "Charging stops")
-    label_end_soc = create_summary_row(summary_frame, "End State of Charge")
+    # create summary labels
+    label_time_traveled   = create_summary_row(summary_frame, "Time traveled"      )
+    label_energy_needed   = create_summary_row(summary_frame, "Energy needed"      )
+    label_avg_consumption = create_summary_row(summary_frame, "Avg. consumption"   )
+    label_usable_range    = create_summary_row(summary_frame, "Usable range"       )
+    label_charging_stops  = create_summary_row(summary_frame, "Charging stops"     )
+    label_end_soc         = create_summary_row(summary_frame, "End State of Charge")
 
     # initial plot
     update_plot()
