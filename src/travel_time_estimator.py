@@ -154,6 +154,12 @@ def update_plot(val=None):
         speed, min_soc=min_s, max_soc=max_s,
     )
 
+    # update consumption model coefficients display
+    if consumption_model.convert().coef[2] <= 0:
+        label_consumption_coeffs.pack(anchor='w', padx=5)
+    else:
+        label_consumption_coeffs.pack_forget()
+
     # update plot
     ax1.clear()
     ax2.clear()
@@ -215,6 +221,7 @@ def main():
     global entry_distance, entry_battery, entry_cons_100, entry_cons_120, entry_time_20_80, entry_time_80_100
     global slider_speed, slider_min_soc, slider_max_soc
     global label_time_traveled, label_energy_needed, label_avg_consumption, label_usable_range, label_charging_stops, label_end_soc
+    global label_consumption_coeffs
     global ax1, ax2, fig, canvas
 
     root = tk.Tk()
@@ -256,6 +263,12 @@ def main():
     entry_cons_120    = create_labeled_entry(left_frame, "Consumption at 120 km/h", "kWh/100km", consumption_120, update_plot)
     entry_time_20_80  = create_labeled_entry(left_frame, "Charging Time 20→80%"   , "min"      , time_20_80     , update_plot)
     entry_time_80_100 = create_labeled_entry(left_frame, "Charging Time 80→100%"  , "min"      , time_80_100    , update_plot)
+
+    # consumption model coefficients display
+    label_consumption_coeffs = tk.Label(left_frame, 
+        text="Consumption curve not monotonically increasing.\n" \
+        "Check consumption values.", font=("Arial", 9), fg="red", justify=tk.LEFT)
+    label_consumption_coeffs.pack_forget()
 
     # right column - sliders and summary
     right_frame = tk.Frame(controls_frame)
