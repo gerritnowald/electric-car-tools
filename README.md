@@ -15,6 +15,6 @@ https://gerritnowald.wordpress.com/2026/05/28/optimizing-electric-car-long-dista
 
 Compare yearly operating costs of electric and combustion cars over mileage based on consumption, energy price and fixed costs.  
 
-![HTML/JavaScript version](https://gerritnowald.github.io/electric-car-tools/)
+[HTML/JavaScript version](https://gerritnowald.github.io/electric-car-tools/)
 
 ![](https://github.com/gerritnowald/electric_car_cost_comparison_GUI/blob/main/img/car_cost_estimator.png)
