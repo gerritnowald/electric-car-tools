@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electric Car Travel Time Estimator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6fb;
+      color: #1f2937;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+    }
+    .lead {
+      margin: 0 0 22px;
+      color: #4b5563;
+      line-height: 1.65;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 18px;
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+      padding: 22px;
+    }
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+    }
+    .field {
+      margin-bottom: 16px;
+    }
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #334155;
+    }
+    .field input[type="number"],
+    .field input[type="range"] {
+      width: 100%;
+    }
+    .field input[type="number"] {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      color: #0f172a;
+      background: #f8fafc;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+    }
+    input[type="range"] {
+      accent-color: #2563eb;
+    }
+    .chart-box {
+      position: relative;
+      width: 100%;
+      height: 420px;
+      margin-bottom: 22px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .summary-card {
+      background: #eef2ff;
+      border-radius: 14px;
+      padding: 16px;
+      min-height: 90px;
+    }
+    .summary-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      color: #1d4ed8;
+    }
+    .summary-card span {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .warning {
+      color: #b91c1c;
+      background: #fef2f2;
+      border: 1px solid #fbcaca;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      display: none;
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+    .note {
+      margin-top: 18px;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Electric Car Travel Time Estimator</h1>
+    <p class="lead">Estimate long-distance travel time and charging behavior for an electric vehicle with configurable speed, battery, consumption, and charging curve parameters.</p>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="field">
+          <label for="distance">Total trip distance (km)</label>
+          <input id="distance" type="number" min="0" step="10" value="700" />
+        </div>
+        <div class="field">
+          <label for="battery">Battery capacity (kWh)</label>
+          <input id="battery" type="number" min="1" step="1" value="80" />
+        </div>
+        <div class="field">
+          <label for="cons100">Consumption at 100 km/h (kWh/100km)</label>
+          <input id="cons100" type="number" min="0" step="0.1" value="13" />
+        </div>
+        <div class="field">
+          <label for="cons120">Consumption at 120 km/h (kWh/100km)</label>
+          <input id="cons120" type="number" min="0" step="0.1" value="18" />
+        </div>
+        <div class="field">
+          <label for="time2080">Charging time 20→80% (min)</label>
+          <input id="time2080" type="number" min="0" step="1" value="20" />
+        </div>
+        <div class="field">
+          <label for="time80100">Charging time 80→100% (min)</label>
+          <input id="time80100" type="number" min="0" step="1" value="30" />
+        </div>
+
+        <div class="field">
+          <div class="slider-label"><span>Travel speed</span><span id="speedValue">110</span> km/h</div>
+          <input id="speed" type="range" min="80" max="150" step="1" value="110" />
+        </div>
+        <div class="field">
+          <div class="slider-label"><span>Min State of Charge</span><span id="minSocValue">20</span>%</div>
+          <input id="minSoc" type="range" min="0" max="50" step="1" value="20" />
+        </div>
+        <div class="field">
+          <div class="slider-label"><span>Max State of Charge</span><span id="maxSocValue">100</span>%</div>
+          <input id="maxSoc" type="range" min="50" max="100" step="1" value="100" />
+        </div>
+
+        <div class="warning" id="warning"></div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-box">
+          <canvas id="travelChart"></canvas>
+        </div>
+        <div class="summary">
+          <div class="summary-card"><strong>Time traveled</strong><span id="summaryTime">0:00 h</span></div>
+          <div class="summary-card"><strong>Energy needed</strong><span id="summaryEnergy">0 kWh</span></div>
+          <div class="summary-card"><strong>Avg. consumption</strong><span id="summaryAvg">0.0 kWh/100km</span></div>
+          <div class="summary-card"><strong>Usable range</strong><span id="summaryRange">0 km</span></div>
+          <div class="summary-card"><strong>Charging stops</strong><span id="summaryStops">0</span></div>
+          <div class="summary-card"><strong>End SOC</strong><span id="summaryEndSoc">100%</span></div>
+        </div>
+        <p class="note">The plot shows distance traveled and state of charge over time for the given trip settings.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="travel_time_estimator.js"></script>
+</body>
+</html>
