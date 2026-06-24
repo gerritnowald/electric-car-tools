@@ -22,7 +22,7 @@
     }
     .content {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr;
       gap: 24px;
       align-items: start;
     }
@@ -93,42 +93,36 @@
         <div class="chart-container">
           <canvas id="costChart"></canvas>
         </div>
-        <div class="values">
-          <div class="value-box" id="summaryElectric">Electric: €0 / year</div>
-          <div class="value-box" id="summaryGasoline">Gasoline: €0 / year</div>
-          <div class="value-box" id="summaryBreakEven">Break-even at 0 km</div>
+        <div class="slider-section">
+          <h2>Electric Car</h2>
+          <div class="slider-row">
+            <label for="electricConsumption">Consumption (kWh / 100 km) <span id="labelElectricConsumption">20</span></label>
+            <input id="electricConsumption" type="range" min="10" max="30" step="0.5" value="20" />
+          </div>
+          <div class="slider-row">
+            <label for="electricPrice">Electricity price (ct / kWh) <span id="labelElectricPrice">30</span></label>
+            <input id="electricPrice" type="range" min="0" max="100" step="1" value="30" />
+          </div>
+          <div class="slider-row">
+            <label for="electricFixed">Fixed costs (€ / year) <span id="labelElectricFixed">500</span></label>
+            <input id="electricFixed" type="range" min="0" max="2000" step="10" value="500" />
+          </div>
+
+          <h2>Gasoline Car</h2>
+          <div class="slider-row">
+            <label for="gasolineConsumption">Consumption (l / 100 km) <span id="labelGasolineConsumption">6</span></label>
+            <input id="gasolineConsumption" type="range" min="3" max="15" step="0.5" value="6" />
+          </div>
+          <div class="slider-row">
+            <label for="gasolinePrice">Gasoline price (€ / l) <span id="labelGasolinePrice">1.50</span></label>
+            <input id="gasolinePrice" type="range" min="1" max="3" step="0.05" value="1.5" />
+          </div>
+          <div class="slider-row">
+            <label for="gasolineFixed">Fixed costs (€ / year) <span id="labelGasolineFixed">500</span></label>
+            <input id="gasolineFixed" type="range" min="0" max="2000" step="10" value="500" />
+          </div>
         </div>
         <div class="note">Distance range: 0 to 30,000 km.</div>
-      </div>
-
-      <div class="panel">
-        <h2>Electric Car</h2>
-        <div class="slider-row">
-          <label for="electricConsumption">Consumption (kWh / 100 km) <span id="labelElectricConsumption">20</span></label>
-          <input id="electricConsumption" type="range" min="10" max="30" step="0.5" value="20" />
-        </div>
-        <div class="slider-row">
-          <label for="electricPrice">Electricity price (ct / kWh) <span id="labelElectricPrice">30</span></label>
-          <input id="electricPrice" type="range" min="0" max="100" step="1" value="30" />
-        </div>
-        <div class="slider-row">
-          <label for="electricFixed">Fixed costs (€ / year) <span id="labelElectricFixed">500</span></label>
-          <input id="electricFixed" type="range" min="0" max="2000" step="10" value="500" />
-        </div>
-
-        <h2>Gasoline Car</h2>
-        <div class="slider-row">
-          <label for="gasolineConsumption">Consumption (l / 100 km) <span id="labelGasolineConsumption">6</span></label>
-          <input id="gasolineConsumption" type="range" min="3" max="15" step="0.5" value="6" />
-        </div>
-        <div class="slider-row">
-          <label for="gasolinePrice">Gasoline price (€ / l) <span id="labelGasolinePrice">1.50</span></label>
-          <input id="gasolinePrice" type="range" min="1" max="3" step="0.05" value="1.5" />
-        </div>
-        <div class="slider-row">
-          <label for="gasolineFixed">Fixed costs (€ / year) <span id="labelGasolineFixed">500</span></label>
-          <input id="gasolineFixed" type="range" min="0" max="2000" step="10" value="500" />
-        </div>
       </div>
     </div>
   </div>

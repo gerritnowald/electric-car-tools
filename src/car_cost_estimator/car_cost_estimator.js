@@ -18,10 +18,6 @@ const labels = {
   gasolineFixed: document.getElementById('labelGasolineFixed'),
 };
 
-const summaryElectric = document.getElementById('summaryElectric');
-const summaryGasoline = document.getElementById('summaryGasoline');
-const summaryBreakEven = document.getElementById('summaryBreakEven');
-
 function formatEuro(value) {
   return `€${value.toFixed(2)}`;
 }
@@ -50,13 +46,10 @@ function findBreakEven(costsElectric, costsGasoline) {
 }
 
 function updateSummary(costsElectric, costsGasoline) {
-  summaryElectric.textContent = `Electric (30,000 km): ${formatEuro(costsElectric[costsElectric.length - 1])}`;
-  summaryGasoline.textContent = `Gasoline (30,000 km): ${formatEuro(costsGasoline[costsGasoline.length - 1])}`;
-
   const breakEvenDistance = findBreakEven(costsElectric, costsGasoline);
-  summaryBreakEven.textContent = breakEvenDistance === null
-    ? 'No break-even within 30,000 km'
-    : `Electric breaks even at ${breakEvenDistance.toLocaleString()} km`;
+  if (breakEvenDistance !== null) {
+    console.log(`Break-even at ${breakEvenDistance} km`);
+  }
 }
 
 function updateLabels() {
@@ -123,7 +116,6 @@ function updateChart() {
   chart.data.datasets[0].data = costsElectric;
   chart.data.datasets[1].data = costsGasoline;
   chart.update();
-  updateSummary(costsElectric, costsGasoline);
 }
 
 Object.values(controls).forEach(control => {
