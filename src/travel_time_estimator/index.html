@@ -25,11 +25,31 @@
       color: #4b5563;
       line-height: 1.65;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: minmax(280px, 360px) 1fr;
+    .stack {
+      display: flex;
+      flex-direction: column;
       gap: 24px;
+    }
+
+    .param-grid {
+      display: grid;
+      /* Use percentage columns so widths are relative to total container */
+      grid-template-columns: 48% 48%;
+      gap: 4%;
       align-items: start;
+    }
+
+    /* Make number inputs a bit narrower so fields don't touch */
+    .param-grid .field input[type="number"] {
+      width: 90%;
+      box-sizing: border-box;
+    }
+
+    /* Ensure inner column padding to add breathing room */
+    .param-grid > div {
+      padding-left: 4px;
+      padding-right: 4px;
+      box-sizing: border-box;
     }
     .panel {
       background: #fff;
@@ -76,7 +96,7 @@
       position: relative;
       width: 100%;
       height: 420px;
-      margin-bottom: 22px;
+      margin-bottom: 0;
     }
     .summary {
       display: grid;
@@ -121,35 +141,21 @@
 <body>
   <div class="page">
     <h1>Electric Car Travel Time Estimator</h1>
-    <p class="lead">Estimate long-distance travel time and charging behavior for an electric vehicle with configurable speed, battery, consumption, and charging curve parameters.</p>
+    <p class="lead">
+      Estimate long-distance travel time and charging behavior for an electric vehicle with configurable speed, battery, consumption, and charging curve parameters. <br>
+      The plot shows distance traveled and state of charge over time for the given trip settings. <br>
+      The consumption curve is approximated with a quadratic function based on the consumption values at 100 km/h and 120 km/h. <br>
+      The charging curve is approximated with a cubic function based on the charging times from 20% to 80% and from 80% to 100% state of charge. <br>
+    </p>
 
-    <div class="grid">
+    <div class="stack">
       <div class="panel">
-        <div class="field">
-          <label for="distance">Total trip distance (km)</label>
-          <input id="distance" type="number" min="0" step="10" value="700" />
+        <div class="chart-box">
+          <canvas id="travelChart"></canvas>
         </div>
-        <div class="field">
-          <label for="battery">Battery capacity (kWh)</label>
-          <input id="battery" type="number" min="1" step="1" value="80" />
-        </div>
-        <div class="field">
-          <label for="cons100">Consumption at 100 km/h (kWh/100km)</label>
-          <input id="cons100" type="number" min="0" step="0.1" value="13" />
-        </div>
-        <div class="field">
-          <label for="cons120">Consumption at 120 km/h (kWh/100km)</label>
-          <input id="cons120" type="number" min="0" step="0.1" value="18" />
-        </div>
-        <div class="field">
-          <label for="time2080">Charging time 20→80% (min)</label>
-          <input id="time2080" type="number" min="0" step="1" value="20" />
-        </div>
-        <div class="field">
-          <label for="time80100">Charging time 80→100% (min)</label>
-          <input id="time80100" type="number" min="0" step="1" value="30" />
-        </div>
+      </div>
 
+      <div class="panel">
         <div class="field">
           <div class="slider-label"><span>Travel speed</span><span id="speedValue">110</span> km/h</div>
           <input id="speed" type="range" min="80" max="150" step="1" value="110" />
@@ -162,14 +168,44 @@
           <div class="slider-label"><span>Max State of Charge</span><span id="maxSocValue">100</span>%</div>
           <input id="maxSoc" type="range" min="50" max="100" step="1" value="100" />
         </div>
+      </div>
+
+      <div class="panel">
+        <div class="param-grid">
+          <div>
+            <div class="field">
+              <label for="distance">Total trip distance (km)</label>
+              <input id="distance" type="number" min="0" step="10" value="700" />
+            </div>
+            <div class="field">
+              <label for="cons100">Consumption at 100 km/h (kWh/100km)</label>
+              <input id="cons100" type="number" min="0" step="0.1" value="13" />
+            </div>
+            <div class="field">
+              <label for="cons120">Consumption at 120 km/h (kWh/100km)</label>
+              <input id="cons120" type="number" min="0" step="0.1" value="18" />
+            </div>
+          </div>
+          <div>
+            <div class="field">
+              <label for="battery">Battery capacity (kWh)</label>
+              <input id="battery" type="number" min="1" step="1" value="80" />
+            </div>
+            <div class="field">
+              <label for="time2080">Charging time 20→80% (min)</label>
+              <input id="time2080" type="number" min="0" step="1" value="20" />
+            </div>
+            <div class="field">
+              <label for="time80100">Charging time 80→100% (min)</label>
+              <input id="time80100" type="number" min="0" step="1" value="30" />
+            </div>
+          </div>
+        </div>
 
         <div class="warning" id="warning"></div>
       </div>
 
       <div class="panel">
-        <div class="chart-box">
-          <canvas id="travelChart"></canvas>
-        </div>
         <div class="summary">
           <div class="summary-card"><strong>Time traveled</strong><span id="summaryTime">0:00 h</span></div>
           <div class="summary-card"><strong>Energy needed</strong><span id="summaryEnergy">0 kWh</span></div>
@@ -178,7 +214,6 @@
           <div class="summary-card"><strong>Charging stops</strong><span id="summaryStops">0</span></div>
           <div class="summary-card"><strong>End SOC</strong><span id="summaryEndSoc">100%</span></div>
         </div>
-        <p class="note">The plot shows distance traveled and state of charge over time for the given trip settings.</p>
       </div>
     </div>
   </div>
